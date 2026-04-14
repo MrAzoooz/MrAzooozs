@@ -1,0 +1,53 @@
+name: Generate Prayer App IPA
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Build and Export
+        run: |
+          # إنشاء ملف إعدادات التصدير تلقائياً
+          echo '<?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+          </dict>
+          </plist>' > ExportOptions.plist
+
+          # بناء الأرشيف (تأكد أن اسم المشروع مطابق لملفاتك)
+          xcodebuild archive \
+            -workspace . \
+            -scheme PrayerApp \
+            -archivePath build/PrayerApp.xcarchive \
+            -sdk iphoneos \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+          # تصدير الـ IPA
+          xcodebuild -exportArchive \
+            -archivePath build/PrayerApp.xcarchive \
+            -exportPath build/output \
+            -exportOptionsPlist ExportOptions.plist \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Prayer-App-IPA
+          path: build/output/*.ipa
